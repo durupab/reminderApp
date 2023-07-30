@@ -7,7 +7,8 @@ import 'package:app1/models/plan.dart';
 
 class NewPlan extends StatefulWidget{
 
-const NewPlan({super.key});
+const NewPlan({
+  super.key,});
 
 @override
   State<NewPlan> createState() {
@@ -35,6 +36,10 @@ class _NewPlanState extends State<NewPlan>{
       });
   }
 
+  void _editPlan() {
+
+  }
+
   void _savePlan() async {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
@@ -60,6 +65,8 @@ class _NewPlanState extends State<NewPlan>{
       if (!context.mounted) {
         return;
       }
+      //bu kısmı yapamıyor??
+      //save eder etmez gelmiyor plan
       Navigator.of(context).pop(
         Plan(
           id: resData['name'],
@@ -84,186 +91,145 @@ class _NewPlanState extends State<NewPlan>{
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     const double edgeDouble = 20;
-    return Expanded(
-      child: SingleChildScrollView(
-        child: Padding(
-           padding: EdgeInsets.only(
-            left: edgeDouble,
-            right: edgeDouble,
-            top: edgeDouble,
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-          ),
-          child: Expanded(
-            child: Form(
-              autovalidateMode: AutovalidateMode.always,
-              key: _formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                   TextFormField(
-                    onSaved: (newValue) {
-                      _enteredTitle = newValue!;
-                    },
-                    maxLength: 50,
-                    decoration: const InputDecoration(
-                      label: Text(
-                        'Title',
-                        style: TextStyle(
-                          color: Color(0xFF1B5E20),
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    validator: (value) {
-                      if (value!.isEmpty) {
-                        return 'Title can\'t be empty';
-                      }
-                      return null;
-                    },
-                  ),
-                     Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Text(
-                          formatter.format(_enteredDate),
-                              style: const TextStyle(
-                                color : Color(0xFF1B5E20),
-                                fontWeight: FontWeight.bold
-                              ),
-                        ),
-                        IconButton(
-                          onPressed: _datePicker,
-                          icon: const Icon(
-                            Icons.calendar_month,
-                            color: Color(0xFF1B5E20),
-                          ),
-                        ),
-                        const SizedBox(width: 30,),
-                        Expanded(
-                          child: DropdownButton(
-                            value: _selectedUrgency,
-                            items: Urgency.values
-                                .map(
-                                  (urgency) => DropdownMenuItem(
-                                    value: urgency,
-                                    child: Text(
-                                      transformUrgencyName(urgency.name),
-                                      
-                                      style: const TextStyle(
-                                        color: Color(0xFF1B5E20),
-                                        fontWeight: FontWeight.bold
-                                      ),
-                                    ),
-                                  ),
-                                )
-                                .toList(),
-                            onChanged: (value) {
-                              if (value == null) {
-                                return;
-                              }
-                              setState(() {
-                                _selectedUrgency = value;
-                              });
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                     
-                        TextFormField(
-                        onSaved: (value) {
-                          _enteredNotes = value!;
-                        },
-                        maxLength: 200,
-                        decoration: const InputDecoration(
-                          label: Text('Notes',style: TextStyle(
-                                color : Color(0xFF1B5E20),
-                                fontWeight: FontWeight.bold),)
-                        ),
-                               ),
-                      Row(
-                        children: [
-                          ElevatedButton(
-                            onPressed: _savePlan,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor:const Color(0xFF1B5E20),
-                              
-                            ),
-                            child: Text(_isSending ? 'Saving' : 'Save',style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold
-                            ),),
-                          ),
-                          const SizedBox(width: 10,),
-                          TextButton(
-                            onPressed: () {
-                              Navigator.pop(context);
-                            },
-                            style: TextButton.styleFrom(
-                              backgroundColor:const Color(0xFF1B5E20),
-                              
-                            ),
-                            child: const Text('Cancel',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold
-                            ),),
-                          ),              
-                        ],
-                      ),
-                    const SizedBox(height: 20,)
-                  ],
-                
-                ),
-            ),
-          ),
-      
-          ),
+    return Padding(
+       padding: EdgeInsets.only(
+        left: edgeDouble,
+        right: edgeDouble,
+        top: edgeDouble,
+        bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
-    );
+      child: Expanded(
+        child: Form(
+          autovalidateMode: AutovalidateMode.always,
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+               TextFormField(
+                onSaved: (newValue) {
+                  _enteredTitle = newValue!;
+                },
+                maxLength: 50,
+                decoration: const InputDecoration(
+                  label: Text(
+                    'Title',
+                    style: TextStyle(
+                      color: Color(0xFF1B5E20),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                validator: (value) {
+                  if (value!.isEmpty) {
+                    return 'Title can\'t be empty';
+                  }
+                  return null;
+                },
+              ),
+                 Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(
+                      formatter.format(_enteredDate),
+                          style: const TextStyle(
+                            color : Color(0xFF1B5E20),
+                            fontWeight: FontWeight.bold
+                          ),
+                    ),
+                    IconButton(
+                      onPressed: _datePicker,
+                      icon: const Icon(
+                        Icons.calendar_month,
+                        color: Color(0xFF1B5E20),
+                      ),
+                    ),
+                    const SizedBox(width: 30,),
+                    Expanded(
+                      child: DropdownButton(
+                        value: _selectedUrgency,
+                        items: Urgency.values
+                            .map(
+                              (urgency) => DropdownMenuItem(
+                                value: urgency,
+                                child: Text(
+                                  transformUrgencyName(urgency.name),
+                                  
+                                  style: const TextStyle(
+                                    color: Color(0xFF1B5E20),
+                                    fontWeight: FontWeight.bold
+                                  ),
+                                ),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          if (value == null) {
+                            return;
+                          }
+                          setState(() {
+                            _selectedUrgency = value;
+                          });
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                 
+                    TextFormField(
+                    onSaved: (value) {
+                      _enteredNotes = value!;
+                    },
+                    maxLength: 200,
+                    decoration: const InputDecoration(
+                      label: Text('Notes',style: TextStyle(
+                            color : Color(0xFF1B5E20),
+                            fontWeight: FontWeight.bold),)
+                    ),
+                           ),
+                  Row(
+                    children: [
+                      ElevatedButton(
+                        onPressed: _savePlan,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor:const Color(0xFF1B5E20),
+                          
+                        ),
+                        child: Text(_isSending ? 'Saving' : 'Save',style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold
+                        ),),
+                      ),
+                      const SizedBox(width: 10,),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                        },
+                        style: TextButton.styleFrom(
+                          backgroundColor:const Color(0xFF1B5E20),
+                          
+                        ),
+                        child: const Text('Cancel',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold
+                        ),),
+                      ),              
+                    ],
+                  ),
+                const SizedBox(height: 20,)
+              ],
+            
+            ),
+        ),
+      ),
+    
+      );
     }
 }
 
 
 
-class CheckboxExample extends StatefulWidget {
-  const CheckboxExample({super.key});
-
-  @override
-  State<CheckboxExample> createState() => _CheckboxExampleState();
-}
-
-class _CheckboxExampleState extends State<CheckboxExample> {
-  bool isChecked = false;
-
-  @override
-  Widget build(BuildContext context) {
-    Color getColor(Set<MaterialState> states) {
-      const Set<MaterialState> interactiveStates = <MaterialState>{
-        MaterialState.pressed,
-        MaterialState.hovered,
-        MaterialState.focused,
-      };
-      if (states.any(interactiveStates.contains)) {
-        return Colors.blue;
-      }
-      return Colors.red;
-    }
-
-    return Checkbox(
-      checkColor: Colors.white,
-      fillColor: MaterialStateProperty.resolveWith(getColor),
-      value: isChecked,
-      onChanged: (bool? value) {
-        setState(() {
-          isChecked = value!;
-        });
-      },
-    );
-  }
-}

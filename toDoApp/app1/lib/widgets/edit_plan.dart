@@ -1,7 +1,5 @@
-
-/*
-
 import 'dart:convert';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -11,10 +9,10 @@ import 'package:app1/models/plan.dart';
 class EditPlan extends StatefulWidget{
 
 const EditPlan({
-   required this.editingPlan,
-  super.key});
+  required this.plan,
+  super.key,});
 
-final Plan editingPlan;
+  final Plan plan;
 
 @override
   State<EditPlan> createState() {
@@ -23,22 +21,26 @@ final Plan editingPlan;
 }
 
 class _EditPlanState extends State<EditPlan>{
-  List<Plan> _plans = [];
   final _formKey = GlobalKey<FormState>();
   var _isSending = false;
-  late String _enteredTitle;
-  late String _enteredNotes;
-  late Urgency _selectedUrgency;
-  late DateTime _enteredDate;
+  var _enteredTitle = '';
+  var _enteredNotes = '';
+  Urgency _selectedUrgency = Urgency.urgent;
+  var _enteredDate = DateTime.now() ;
+    var _editedTitle = '';
+  var _editedNotes = '';
+  Urgency _editedUrgency = Urgency.urgent;
+  var _editedDate = DateTime.now() ;
 
-  @override
+    @override
   void initState() {
     super.initState();
-    // Initialize the form fields with the existing plan's data
-    _enteredTitle = widget.editingPlan.title;
-    _enteredNotes = widget.editingPlan.notes;
-    _selectedUrgency = widget.editingPlan.urgency;
-    _enteredDate = widget.editingPlan.date;
+    _enteredTitle = widget.plan.title;
+    _enteredNotes = widget.plan.notes;
+    _selectedUrgency = widget.plan.urgency;
+    _enteredDate = widget.plan.date;
+    super.initState;
+    _loadPlans();
   }
 
   void _datePicker() async{
@@ -49,48 +51,75 @@ class _EditPlanState extends State<EditPlan>{
       firstDate: DateTime(2023, 7, 20), // Example: Set the first allowed date
       lastDate: DateTime(2026, 1, 18), );
       setState(() {
-        _enteredDate = lastDate!;
+        _editedDate = lastDate!;
       });
-  }
-    void _removePlan(Plan plan) async{
-    showDialog(
-    context: context,
-    builder: (BuildContext context) {
-      return AlertDialog(
-        title: const Text('Delete Plan'),
-        content: const Text('Are you sure you want to delete this plan?'),
-        actions: <Widget>[
-          TextButton(
-            child: const Text('Delete'),
-            onPressed: () {
-              setState(() {
-                _plans.remove(plan); // Remove the plan from the list
-              });
-              Navigator.of(context).pop(); // Close the dialog
-            },
-          ),
-          TextButton(
-            child: const Text('Cancel'),
-            onPressed: () {
-              Navigator.of(context).pop(); // Close the dialog
-            },
-          ),
-        ],
-      );
-    },
-  );  
-    final index = _plans.indexOf(plan);
-    final url = Uri.https('flutter-c64cf-default-rtdb.firebaseio.com','plans.json');
-    final response = await http.delete(url);
-    if(response.statusCode >= 400){
+    if (lastDate != null && lastDate != _enteredDate) {
       setState(() {
-        _plans.insert(index, plan);
+        _enteredDate = lastDate;
       });
     }
   }
+  List<Plan> _plans = [];
+  var _isLoading = true;
+  String? _error;
+
+
+void _loadPlans() async {
+  final url = Uri.https('flutter-c64cf-default-rtdb.firebaseio.com', 'plans.json');
+
+  final response = await http.get(url);
+
+  if (response.statusCode >= 400) {
+    setState(() {
+      _error = 'Failed to fetch data.';
+    });
+  } else if (response.body == 'null') {
+    setState(() {
+      _plans = []; // Clear the existing plans list when there are no plans in the database
+      _isLoading = false;
+    });
+  } else {
+    final Map<String, dynamic> listData = json.decode(response.body);
+    final List<Plan> loadedPlans = [];
+    for (final entry in listData.entries) {
+      final Map<String, dynamic> planData = entry.value;
+      final Plan plan = Plan(
+        id: entry.key,
+        title: planData['title'],
+        urgency: _convertStringToUrgency(planData['urgency']),
+        notes: planData['notes'],
+        date: DateTime.parse(planData['date']),
+      );
+      loadedPlans.add(plan);
+    }
+    setState(() {
+      _plans = loadedPlans; // Assign the loaded plans to the existing list
+      _isLoading = false;
+    });
+  }
+}
+
+Urgency _convertStringToUrgency(String urgencyString) {
+  switch (urgencyString) {
+    case 'urgent':
+      return Urgency.urgent;
+    case 'mediumUrgency':
+      return Urgency.mediumUrgency;
+    case 'notUrgent':
+      return Urgency.notUrgent;
+    default:
+      return Urgency.urgent; // Set a default value in case of invalid data
+  }
+}
+
 
   void _saveEditedPlan(Plan plan) async {
-    _removePlan(plan);
+     setState(() {
+        _plans.remove(plan);
+        
+     });   
+    final url = Uri.https('flutter-c64cf-default-rtdb.firebaseio.com', 'plans/${plan.id}.json');
+        final response = await http.delete(url); // Remove the plan from the list
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
       setState(() {
@@ -103,17 +132,20 @@ class _EditPlanState extends State<EditPlan>{
           'Content-Type': 'application/json',
         },
         body: json.encode({
-          'title': _enteredTitle,
-          'urgency': _selectedUrgency.toString().split('.').last,
-          'notes': _enteredNotes,
-          'date': _enteredDate.toIso8601String(),
+          'title': _editedTitle,
+          'urgency': _editedUrgency.toString().split('.').last,
+          'notes': _editedNotes,
+          'date': _editedDate.toIso8601String(),
         }),
       );
 
       final Map<String, dynamic> resData = json.decode(response.body);
+
       if (!context.mounted) {
         return;
       }
+      //bu kısmı yapamıyor??
+      //save eder etmez gelmiyor plan
       Navigator.of(context).pop(
         Plan(
           id: resData['name'],
@@ -138,183 +170,146 @@ class _EditPlanState extends State<EditPlan>{
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     const double edgeDouble = 20;
-    return MaterialApp(
-       home: Scaffold(
-        body:Expanded(
-        child: Padding(
-           padding: EdgeInsets.only(left:10 ,right: 10 ,top:60 ,),
-          child: Expanded(
-            child: Form(
-              autovalidateMode: AutovalidateMode.always,
-              key: _formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                   TextFormField(
-                    onSaved: (newValue) {
-                      _enteredTitle = newValue!;
-                    },
-                    maxLength: 50,
-                    decoration: const InputDecoration(
-                      label: Text(
-                        'Title',
-                        style: TextStyle(
-                          color: Color(0xFF1B5E20),
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    validator: (value) {
-                      if (value!.isEmpty) {
-                        return 'Title can\'t be empty';
-                      }
-                      return null;
-                    },
-                  ),
-                     Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Text(
-                          formatter.format(_enteredDate),
-                              style: const TextStyle(
-                                color : Color(0xFF1B5E20),
-                                fontWeight: FontWeight.bold
-                              ),
-                        ),
-                        IconButton(
-                          onPressed: _datePicker,
-                          icon: const Icon(
-                            Icons.calendar_month,
-                            color: Color(0xFF1B5E20),
-                          ),
-                        ),
-                        const SizedBox(width: 30,),
-                        Expanded(
-                          child: DropdownButton(
-                            value: _selectedUrgency,
-                            items: Urgency.values
-                                .map(
-                                  (urgency) => DropdownMenuItem(
-                                    value: urgency,
-                                    child: Text(
-                                      transformUrgencyName(urgency.name),
-                                      
-                                      style: const TextStyle(
-                                        color: Color(0xFF1B5E20),
-                                        fontWeight: FontWeight.bold
-                                      ),
-                                    ),
-                                  ),
-                                )
-                                .toList(),
-                            onChanged: (value) {
-                              if (value == null) {
-                                return;
-                              }
-                              setState(() {
-                                _selectedUrgency = value;
-                              });
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                     
-                        TextFormField(
-                        onSaved: (value) {
-                          _enteredNotes = value!;
-                        },
-                        maxLength: 200,
-                        decoration: const InputDecoration(
-                          label: Text('Notes',style: TextStyle(
-                                color : Color(0xFF1B5E20),
-                                fontWeight: FontWeight.bold),)
-                        ),
-                               ),
-                      Row(
-                        children: [
-                          ElevatedButton(
-                            onPressed:() { _saveEditedPlan(widget.editingPlan);},
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor:const Color(0xFF1B5E20),
-                              
-                            ),
-                            child: Text(_isSending ? 'Saving' : 'Save Edit',style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold
-                            ),),
-                          ),
-                          const SizedBox(width: 10,),
-                          TextButton(
-                            onPressed: () {
-                              Navigator.pop(context);
-                            },
-                            style: TextButton.styleFrom(
-                              backgroundColor:const Color(0xFF1B5E20),
-                              
-                            ),
-                            child: const Text('Cancel',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold
-                            ),),
-                          ),              
-                        ],
-                      ),
-                    const SizedBox(height: 20,)
-                  ],
-                
-                ),
-            ),
-          ),
-      
-          ),
+    return Padding(
+       padding: EdgeInsets.only(
+        left: edgeDouble,
+        right: edgeDouble,
+        top: edgeDouble,
+        bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
-    ),);
+      child: Expanded(
+        child: Form(
+          autovalidateMode: AutovalidateMode.always,
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+               TextFormField(
+                initialValue: _enteredTitle,
+                onSaved: (newValue) {
+                  _editedTitle = newValue!;
+                },
+                maxLength: 50,
+                decoration: const InputDecoration(
+                  label: Text(
+                    'Title',
+                    style: TextStyle(
+                      color: Color(0xFF1B5E20),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                validator: (value) {
+                  if (value!.isEmpty) {
+                    return 'Title can\'t be empty';
+                  }
+                  return null;
+                },
+              ),
+                 Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(
+                      formatter.format(_editedDate),
+                          style: const TextStyle(
+                            color : Color(0xFF1B5E20),
+                            fontWeight: FontWeight.bold
+                          ),
+                    ),
+                    IconButton(
+                      onPressed: _datePicker,
+                      icon: const Icon(
+                        Icons.calendar_month,
+                        color: Color(0xFF1B5E20),
+                      ),
+                    ),
+                    const SizedBox(width: 30,),
+                    Expanded(
+                      child: DropdownButton(
+                        value: _selectedUrgency,
+                        items: Urgency.values
+                            .map(
+                              (urgency) => DropdownMenuItem(
+                                value: urgency,
+                                child: Text(
+                                  transformUrgencyName(urgency.name),
+                                  style: const TextStyle(
+                                    color: Color(0xFF1B5E20),
+                                    fontWeight: FontWeight.bold
+                                  ),
+                                ),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          if (value == null) {
+                            return;
+                          }
+                          setState(() {
+                            _editedUrgency = value;
+                          });
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                 
+                    TextFormField(
+                    initialValue: _enteredNotes,
+                    onSaved: (value) {
+                      _editedNotes = value!;
+                    },
+                    maxLength: 200,
+                    decoration: const InputDecoration(
+                      label: Text('Notes',style: TextStyle(
+                            color : Color(0xFF1B5E20),
+                            fontWeight: FontWeight.bold),)
+                    ),
+                           ),
+                  Row(
+                    children: [
+                      ElevatedButton(                      
+                        onPressed:() {_saveEditedPlan(widget.plan);},             
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor:const Color(0xFF1B5E20),
+                          
+                        ),
+                        child: Text(_isSending ? 'Saving' : 'Save',style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold
+                        ),),
+                      ),
+                      const SizedBox(width: 10,),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                        },
+                        style: TextButton.styleFrom(
+                          backgroundColor:const Color(0xFF1B5E20),
+                          
+                        ),
+                        child: const Text('Cancel',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold
+                        ),),
+                      ),              
+                    ],
+                  ),
+                const SizedBox(height: 20,)
+              ],
+            
+            ),
+        ),
+      ),
+    
+      );
     }
-     
 }
 
 
-class CheckboxExample extends StatefulWidget {
-  const CheckboxExample({super.key});
 
-  @override
-  State<CheckboxExample> createState() => _CheckboxExampleState();
-}
-
-class _CheckboxExampleState extends State<CheckboxExample> {
-  bool isChecked = false;
-
-  @override
-  Widget build(BuildContext context) {
-    Color getColor(Set<MaterialState> states) {
-      const Set<MaterialState> interactiveStates = <MaterialState>{
-        MaterialState.pressed,
-        MaterialState.hovered,
-        MaterialState.focused,
-      };
-      if (states.any(interactiveStates.contains)) {
-        return Colors.blue;
-      }
-      return Colors.red;
-    }
-
-    return Checkbox(
-      checkColor: Colors.white,
-      fillColor: MaterialStateProperty.resolveWith(getColor),
-      value: isChecked,
-      onChanged: (bool? value) {
-        setState(() {
-          isChecked = value!;
-        });
-      },
-    );
-  }
-}
-*/

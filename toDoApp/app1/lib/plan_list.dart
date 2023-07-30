@@ -77,6 +77,12 @@ Urgency _convertStringToUrgency(String urgencyString) {
   }
 }
 
+  void _editPlan(Plan plan){
+    showModalBottomSheet(
+      isScrollControlled: true,
+      context: context, 
+      builder: (context) => EditPlan(plan: plan,));
+  }
 
   void _openAddPlan(){
     showModalBottomSheet(
@@ -84,8 +90,7 @@ Urgency _convertStringToUrgency(String urgencyString) {
       context: context, 
       builder: (context) => const NewPlan(),);
   }
-  //REMOVE SIKINTI VAR HEPSİNİ SİLİYOR TIKLAR TIKLAMAZ BUTONA
-  //cancelda sıkıntı yok ama cancel a bassam da firebaseden siliyor
+
   void _removePlan(Plan plan) {
   showDialog(
     context: context,
@@ -138,14 +143,15 @@ Urgency _convertStringToUrgency(String urgencyString) {
   );
 }
 
-/*
-  void _editPlan(Plan plan) {
-    Navigator.of(context).push<Plan>(
-      MaterialPageRoute(builder: (context) => EditPlan(editingPlan: plan),
-      )
-    );
-  } 
-*/
+Future<void> _handleRefresh() async {
+  // Fetch updated data from the server or any other data source
+  _loadPlans();
+
+  // Set state to trigger a rebuild and show the updated data
+  setState(() {});
+}
+
+
   @override
   Widget build(BuildContext context) {
     Widget content = const Center(child: Text('No items added yet'),);
@@ -160,13 +166,14 @@ Urgency _convertStringToUrgency(String urgencyString) {
         itemCount: _plans.length,
         itemBuilder: (ctx, index) {
           return PlanItem(
+            key: ValueKey(_plans[index].id),
             plan: _plans[index],
             onRemove: () {
               // Call onRemovePlan with the plan to remove it from the list
               _removePlan(_plans[index]);
             },
             onEdit: () {
-             //_editPlan(_plans[index]);
+             _editPlan(_plans[index]);
             },
           );
         },
@@ -182,15 +189,22 @@ Urgency _convertStringToUrgency(String urgencyString) {
         backgroundColor: const Color(0xFF1B5E20),
         title: const Text('Reminder'),
         actions: [
-          IconButton(onPressed: _openAddPlan, icon: const Icon(Icons.add_circle)),
+          IconButton(onPressed: () { _handleRefresh(); }, icon: const Icon(Icons.refresh)),
+
         ],
           ),
-        body: Column(
-          children: [
-            Expanded(child: content)
-      ],
-    ),
+        body:
+             Column(
+              children: [
+                Expanded(child: content),
+                ],
+              ),
+    floatingActionButton: FloatingActionButton(
+        onPressed: _openAddPlan,
+         // Use the updated icon
+        backgroundColor: const Color(0xFF1B5E20),
+        child: const Icon(Icons.add),
+      ),
     );
   }
 }
-

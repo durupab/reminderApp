@@ -1,2 +1,2 @@
 # reminderApp
-add plans with date, notes and urgency level. 
+add,edit and delete plans with date, notes and urgency level. 
